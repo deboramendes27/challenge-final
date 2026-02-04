@@ -93,7 +93,6 @@ export default function App() {
   const roleColor = isTerrain ? 'bg-green-100 text-green-700 border-green-300' : 'bg-blue-100 text-blue-700 border-blue-300';
   
   return (
-    // FLEX-COL e H-SCREEN na raiz
     <div className="flex flex-col h-screen w-screen bg-gray-50 overflow-hidden">
       <Toaster />
       
@@ -114,7 +113,7 @@ export default function App() {
         </SheetContent>
       </Sheet>
 
-      {/* HEADER FIXO (shrink-0 impede que ele encolha) */}
+      {/* HEADER */}
       <header className="flex-none bg-white border-b px-4 h-[60px] flex items-center justify-between shadow-sm z-50">
         <div>
           <h1 className="text-xl font-bold text-indigo-600">Recensement MEL</h1>
@@ -123,20 +122,35 @@ export default function App() {
         <Button variant="outline" onClick={handleLogout} size="sm"><LogOut className="size-4 mr-2" />Déconnexion</Button>
       </header>
 
-      {/* CONTEÚDO PRINCIPAL (flex-1 faz ocupar todo o resto) */}
+      {/* CONTEÚDO PRINCIPAL */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <Tabs defaultValue="carte" className="flex-1 flex flex-col h-full w-full">
           
-          {/* MENU DE ABAS (flex-none) */}
-          <div className="flex-none bg-white border-b px-4 h-[50px] flex items-center z-40">
-            <TabsList className="grid w-full max-w-xl grid-cols-3">
-              <TabsTrigger value="carte"><Map className="size-4 mr-2" /> Carte</TabsTrigger>
-              <TabsTrigger value="analytics"><BarChart3 className="size-4 mr-2" /> Analytics</TabsTrigger>
-              <TabsTrigger value="profil"><UserIcon className="size-4 mr-2" /> Profil</TabsTrigger>
+          {/* MENU DE ABAS */}
+          <div className="flex-none bg-white border-b px-4 py-2 z-40">
+            <TabsList className="grid w-full max-w-xl grid-cols-3 bg-gray-100 p-1 rounded-lg">
+              <TabsTrigger 
+                value="carte" 
+                className="rounded-md data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm transition-all"
+              >
+                <Map className="size-4 mr-2" /> Carte
+              </TabsTrigger>
+              <TabsTrigger 
+                value="analytics"
+                className="rounded-md data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm transition-all"
+              >
+                <BarChart3 className="size-4 mr-2" /> Analytics
+              </TabsTrigger>
+              <TabsTrigger 
+                value="profil"
+                className="rounded-md data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm transition-all"
+              >
+                <UserIcon className="size-4 mr-2" /> Profil
+              </TabsTrigger>
             </TabsList>
           </div>
 
-          {/* ABA 1: MAPA (flex-1 para crescer até o fundo) */}
+          {/* ABA 1: MAPA */}
           <TabsContent value="carte" className="flex-1 relative w-full h-full p-0 m-0 data-[state=inactive]:hidden">
             <div className="absolute inset-0 w-full h-full">
                 <MapRecensement
@@ -147,9 +161,16 @@ export default function App() {
                   userRole={isTerrain ? 'terrain' : 'bureau'}
                 />
             </div>
+            
+            {/* BOTÃO NOUVEAU (Reposicionado para Topo-Direita) */}
             {isTerrain && (
-                <div className="absolute top-4 left-4 z-[500]">
-                    <Button onClick={() => setTerrainSheetOpen(true)} className="bg-indigo-600 shadow-xl border-2 border-white text-white"><PlusCircle className="mr-2 size-5" /> Nouveau</Button>
+                <div className="absolute top-4 right-4 z-[500]">
+                    <Button 
+                        onClick={() => setTerrainSheetOpen(true)} 
+                        className="bg-indigo-600 shadow-lg border-2 border-white text-white hover:bg-indigo-700"
+                    >
+                        <PlusCircle className="mr-2 size-5" /> Nouveau
+                    </Button>
                 </div>
             )}
           </TabsContent>

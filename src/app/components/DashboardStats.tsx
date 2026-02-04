@@ -1,128 +1,59 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
-import { Mobilier, STATE_CONFIG } from "@/app/types/mobilier";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { AlertTriangle, CheckCircle, MapPin, Activity } from "lucide-react";
+import { Card, CardContent } from '@/app/components/ui/card';
+import { Mobilier } from '@/app/types/mobilier';
+import { AlertTriangle, CheckCircle, MapPin } from 'lucide-react';
 
 interface DashboardStatsProps {
   mobiliers: Mobilier[];
 }
 
 export function DashboardStats({ mobiliers }: DashboardStatsProps) {
-  // 1. Cálculos de Contagem
   const total = mobiliers.length;
-  const perigosos = mobiliers.filter(m => m.state === 'dangereux').length;
-  const bons = mobiliers.filter(m => m.state === 'neuf' || m.state === 'correct').length;
-  
-  // 2. Agrupar por Tipo (Para o Gráfico)
-  const dadosPorTipo = mobiliers.reduce((acc, curr) => {
-    const existing = acc.find(item => item.name === curr.type);
-    if (existing) {
-      existing.value += 1;
-    } else {
-      acc.push({ name: curr.type, value: 1 });
-    }
-    return acc;
-  }, [] as { name: string; value: number }[]).sort((a, b) => b.value - a.value); // Ordenar do maior para o menor
+  const dangerous = mobiliers.filter(m => m.state === 'dangereux').length;
+  const good = mobiliers.filter(m => m.state === 'neuf' || m.state === 'correct').length;
 
   return (
-    <div className="space-y-6 p-4 h-full overflow-y-auto">
-      <h2 className="text-2xl font-bold tracking-tight">Painel de Controle</h2>
-
-      {/* CARDS DE RESUMO (Topo) */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Identificado</CardTitle>
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{total}</div>
-            <p className="text-xs text-muted-foreground">Itens registrados no sistema</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Atenção Necessária</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{perigosos}</div>
-            <p className="text-xs text-muted-foreground">Itens marcados como perigosos</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Em Bom Estado</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{bons}</div>
-            <p className="text-xs text-muted-foreground">Itens novos ou corretos</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* GRÁFICO E LISTA DETALHADA */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        
-        {/* Gráfico de Barras */}
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Distribuição por Tipo</CardTitle>
-          </CardHeader>
-          <CardContent className="pl-2">
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dadosPorTipo}>
-                  <XAxis 
-                    dataKey="name" 
-                    stroke="#888888" 
-                    fontSize={12} 
-                    tickLine={false} 
-                    axisLine={false}
-                    tickFormatter={(value) => value.length > 10 ? `${value.substring(0, 10)}...` : value} 
-                  />
-                  <YAxis 
-                    stroke="#888888" 
-                    fontSize={12} 
-                    tickLine={false} 
-                    axisLine={false} 
-                    allowDecimals={false}
-                  />
-                  <Tooltip 
-                    cursor={{fill: 'transparent'}}
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  />
-                  <Bar dataKey="value" fill="currentColor" radius={[4, 4, 0, 0]} className="fill-primary" />
-                </BarChart>
-              </ResponsiveContainer>
+    <div className="space-y-4">
+      <h2 className="text-xl font-bold text-gray-800">Tableau de Bord</h2>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Total */}
+        <Card className="border-l-4 border-l-blue-500 shadow-sm">
+          <CardContent className="p-6 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Total Recensé</p>
+              <h3 className="text-3xl font-bold text-gray-900 mt-2">{total}</h3>
+              <p className="text-xs text-gray-400 mt-1">Éléments enregistrés</p>
+            </div>
+            <div className="p-3 bg-blue-50 rounded-full">
+              <MapPin className="size-6 text-blue-600" />
             </div>
           </CardContent>
         </Card>
 
-        {/* Lista de Contagem */}
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle>Contagem Detalhada</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {dadosPorTipo.map((item) => (
-                <div key={item.name} className="flex items-center">
-                  <div className="ml-4 space-y-1 w-full">
-                    <p className="text-sm font-medium leading-none">{item.name}</p>
-                    <div className="w-full bg-secondary h-2 rounded-full mt-1">
-                      <div 
-                        className="bg-primary h-2 rounded-full" 
-                        style={{ width: `${(item.value / total) * 100}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className="ml-auto font-medium">{item.value}</div>
-                </div>
-              ))}
+        {/* Attention */}
+        <Card className="border-l-4 border-l-red-500 shadow-sm">
+          <CardContent className="p-6 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Attention Requise</p>
+              <h3 className="text-3xl font-bold text-red-600 mt-2">{dangerous}</h3>
+              <p className="text-xs text-gray-400 mt-1">Signalés dangereux</p>
+            </div>
+            <div className="p-3 bg-red-50 rounded-full">
+              <AlertTriangle className="size-6 text-red-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Bon État */}
+        <Card className="border-l-4 border-l-green-500 shadow-sm">
+          <CardContent className="p-6 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500">En Bon État</p>
+              <h3 className="text-3xl font-bold text-green-600 mt-2">{good}</h3>
+              <p className="text-xs text-gray-400 mt-1">Conformes / Neufs</p>
+            </div>
+            <div className="p-3 bg-green-50 rounded-full">
+              <CheckCircle className="size-6 text-green-600" />
             </div>
           </CardContent>
         </Card>

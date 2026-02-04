@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Mobilier, STATE_CONFIG, isCategorized } from '@/app/types/mobilier';
+import { Mobilier } from '@/app/types/mobilier';
 import { Button } from '@/app/components/ui/button';
-import { Navigation, Edit, Lock } from 'lucide-react';
+import { Edit, Lock, AlertTriangle, CheckCircle } from 'lucide-react';
 import L from 'leaflet';
 
 import iconMarker from 'leaflet/dist/images/marker-icon.png';
@@ -37,10 +37,37 @@ export function MapRecensement({ mobiliers, currentPosition, onMarkerClick, near
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => setIsMounted(true), []);
 
+  const isValidated = (m: Mobilier) => {
+    // Cast para 'any' pois os campos são novos no tipo
+    const mob = m as any;
+    return !!(mob.distributeur && mob.distributeur.trim() !== '' && 
+              mob.description_technique && mob.description_technique.trim() !== '');
+  };
+
+  const getMarkerColor = (mob: Mobilier) => {
+    if (userRole === 'bureau') {
+      return isValidated(mob) ? '#16a34a' : '#f97316';
+    } else {
+      switch (mob.state) {
+        case 'dangereux': return '#dc2626'; // Red
+        case 'endommagé': return '#f97316'; // Orange
+        case 'neuf': return '#16a34a';      // Green
+        case 'correct':
+        default: return '#2563eb';          // Blue
+      }
+    }
+  };
+
   const getMarkerIcon = (color: string) => {
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+        <circle cx="12" cy="10" r="3" fill="white"></circle>
+      </svg>`;
+      
     return L.divIcon({
       className: 'custom-pin',
-      html: `<div style="width: 32px; height: 32px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-9 13-9 13s-9-7-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3" fill="white"/></svg></div>`,
+      html: `<div style="width: 32px; height: 42px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">${svg}</div>`,
       iconSize: [32, 42],
       iconAnchor: [16, 42],
       popupAnchor: [0, -45]
@@ -50,8 +77,7 @@ export function MapRecensement({ mobiliers, currentPosition, onMarkerClick, near
   if (!isMounted) return <div className="h-full w-full bg-gray-100 flex items-center justify-center">Chargement carte...</div>;
 
   return (
-    // AQUI: Certifique-se que é h-full w-full sem z-0
-    <div className="w-full h-full relative isolate">
+    <div className="w-full h-full relative isolate z-0">
       <MapContainer center={currentPosition || [50.6292, 3.0573]} zoom={13} style={{ height: '100%', width: '100%', zIndex: 1 }}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap' />
         <RecenterMap position={currentPosition} />
@@ -63,14 +89,7 @@ export function MapRecensement({ mobiliers, currentPosition, onMarkerClick, near
         )}
 
         {mobiliers.map((mob) => {
-           let color = '#3b82f6'; 
-           if (userRole === 'bureau') color = isCategorized(mob) ? '#16a34a' : '#f97316';
-           else {
-             if (mob.state === 'dangereux') color = '#dc2626';
-             else if (mob.state === 'endommagé') color = '#f97316';
-             else if (mob.state === 'neuf') color = '#16a34a';
-           }
-
+           const color = getMarkerColor(mob);
            const canEdit = userRole === 'bureau' || (userRole === 'terrain' && nearbyMobiliers.some(m => m.id === mob.id));
 
            return (
@@ -81,12 +100,22 @@ export function MapRecensement({ mobiliers, currentPosition, onMarkerClick, near
                eventHandlers={{ click: () => { if (userRole === 'bureau' && onMarkerClick) onMarkerClick(mob); }}}
              >
                <Popup>
-                 <div className="text-sm min-w-[200px]">
-                   <strong className="block mb-1 text-base">{mob.type}</strong>
-                   <span className="text-xs px-2 py-0.5 rounded bg-gray-100 border">{STATE_CONFIG[mob.state]?.label}</span>
-                   {mob.photo && <img src={mob.photo} className="w-full h-24 object-cover rounded mt-2" />}
+                 <div className="text-sm min-w-[200px] p-1">
+                   <strong className="block mb-1 text-base capitalize">{mob.type}</strong>
+                   <div className="flex flex-wrap gap-1 mb-2">
+                     <span className="text-xs px-2 py-0.5 rounded bg-gray-100 border font-medium capitalize">
+                        {mob.state}
+                     </span>
+                     {userRole === 'bureau' && (
+                        isValidated(mob) 
+                        ? <span className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700 border border-green-200 flex items-center gap-1"><CheckCircle className="size-3"/> Validé</span>
+                        : <span className="text-xs px-2 py-0.5 rounded bg-orange-100 text-orange-700 border border-orange-200 flex items-center gap-1"><AlertTriangle className="size-3"/> À Traiter</span>
+                     )}
+                   </div>
+                   {mob.photo && <img src={mob.photo} className="w-full h-24 object-cover rounded mb-2 border" />}
+                   
                    {onMarkerClick && (
-                      <Button size="sm" disabled={!canEdit} className="w-full mt-2 h-8" onClick={() => { if(canEdit) onMarkerClick(mob); }}>
+                      <Button size="sm" disabled={!canEdit} className={`w-full mt-1 h-8 ${canEdit ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-gray-200 text-gray-500'}`} onClick={() => { if(canEdit) onMarkerClick(mob); }}>
                           {canEdit ? <><Edit className="size-3 mr-2"/> Modifier</> : <><Lock className="size-3 mr-2"/> Trop loin</>}
                       </Button>
                    )}
@@ -97,14 +126,25 @@ export function MapRecensement({ mobiliers, currentPosition, onMarkerClick, near
         })}
       </MapContainer>
       
-      <div className="absolute top-4 right-4 z-[500]">
-         <Button size="sm" variant="secondary" className="bg-white shadow-md text-black" onClick={() => {
-            const map = document.querySelector('.leaflet-container');
-            if (map) (map as any)._leaflet_map.flyTo(currentPosition || [50.6292, 3.0573], 15);
-         }}>
-           <Navigation className="size-4 mr-2" /> Centrer
-         </Button>
-      </div>
+      {/* LEGENDA - BUREAU */}
+      {userRole === 'bureau' && (
+         <div className="absolute bottom-6 left-4 bg-white p-3 rounded-lg shadow-lg border border-gray-200 z-[500] text-xs space-y-1">
+            <div className="font-bold mb-2">Légende (Validation)</div>
+            <div className="flex items-center gap-2"><div className="size-3 rounded-full bg-green-600"></div> Validé (Complet)</div>
+            <div className="flex items-center gap-2"><div className="size-3 rounded-full bg-orange-500"></div> À Traiter / Incomplet</div>
+         </div>
+      )}
+
+      {/* LEGENDA - TERRAIN (NOVA) */}
+      {userRole === 'terrain' && (
+         <div className="absolute bottom-6 left-4 bg-white p-3 rounded-lg shadow-lg border border-gray-200 z-[500] text-xs space-y-1">
+            <div className="font-bold mb-2">Légende (État)</div>
+            <div className="flex items-center gap-2"><div className="size-3 rounded-full bg-green-600"></div> Neuf</div>
+            <div className="flex items-center gap-2"><div className="size-3 rounded-full bg-blue-600"></div> Correct</div>
+            <div className="flex items-center gap-2"><div className="size-3 rounded-full bg-orange-500"></div> Endommagé</div>
+            <div className="flex items-center gap-2"><div className="size-3 rounded-full bg-red-600"></div> Dangereux</div>
+         </div>
+      )}
     </div>
   );
 }

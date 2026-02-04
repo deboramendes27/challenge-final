@@ -13,11 +13,10 @@ interface LoginPageProps {
 export function LoginPage({ onLogin }: LoginPageProps) {
   const [selectedRole, setSelectedRole] = useState<'agent-terrain' | 'agent-bureau'>('agent-terrain');
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState(''); // Estado para a senha
+  const [password, setPassword] = useState('');
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // Validação simples: só entra se tiver usuário E senha
     if (!username.trim() || !password.trim()) return;
 
     const user: User = {
@@ -37,12 +36,12 @@ export function LoginPage({ onLogin }: LoginPageProps) {
              <Map className="text-white size-7" />
           </div>
           <CardTitle className="text-2xl font-bold text-gray-800">Recensement MEL</CardTitle>
-          <p className="text-sm text-gray-500">Acesso para coleta e gestão</p>
+          {/* Traduzido para Francês */}
+          <p className="text-sm text-gray-500">Accès pour collecte et gestion</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-6">
             
-            {/* SELEÇÃO DE PERFIL */}
             <div className="grid grid-cols-2 gap-4">
               <button
                 type="button"
@@ -71,7 +70,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               </button>
             </div>
 
-            {/* INPUTS DE LOGIN */}
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="username" className="flex items-center gap-2">
@@ -87,7 +85,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 />
               </div>
 
-              {/* CAMPO DE SENHA RESTAURADO */}
               <div className="space-y-2">
                 <Label htmlFor="password" className="flex items-center gap-2">
                     <Lock className="size-4" /> 
@@ -106,7 +103,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
             <Button type="submit" className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-lg">
               <LogIn className="mr-2 size-5" /> 
-              Entrer comme {selectedRole === 'agent-terrain' ? 'Terrain' : 'Bureau'}
+              Se connecter
             </Button>
           </form>
         </CardContent>
