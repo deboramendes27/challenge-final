@@ -4,222 +4,188 @@ import { Input } from '@/app/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
-import { Search, Filter, Download, MapPin, Image } from 'lucide-react';
-import { Mobilier, MobilierState, MobilierCategory, STATE_CONFIG, CATEGORY_LABELS } from '@/app/types/mobilier';
+import { Search, Filter, MapPin, Edit, CheckCircle, AlertCircle, Lock } from 'lucide-react';
+import { Mobilier, MobilierState, MobilierCategory, STATE_CONFIG, CATEGORY_LABELS, isCategorized } from '@/app/types/mobilier';
 import { MobilierDetailDialog } from '@/app/components/MobilierDetailDialog';
 
 interface MobilierListProps {
   mobiliers: Mobilier[];
-  onMobilierClick?: (mobilier: Mobilier) => void;
+  userRole?: 'terrain' | 'bureau';
+  onEdit?: (mob: Mobilier) => void;
+  nearbyMobiliers?: Mobilier[]; 
 }
 
-export function MobilierList({ mobiliers, onMobilierClick }: MobilierListProps) {
+export function MobilierList({ mobiliers, userRole = 'terrain', onEdit, nearbyMobiliers = [] }: MobilierListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<MobilierCategory | 'all'>('all');
   const [filterState, setFilterState] = useState<MobilierState | 'all'>('all');
-  const [filterGestionnaire, setFilterGestionnaire] = useState<'all' | 'MEL' | 'commune' | 'inconnu'>('all');
+  const [filterProcessing, setFilterProcessing] = useState<'all' | 'done' | 'todo'>('all');
+  
   const [selectedMobilier, setSelectedMobilier] = useState<Mobilier | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const filteredMobiliers = mobiliers.filter((mob) => {
-    const matchesSearch = 
-      mob.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      mob.commentaire?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      mob.agent.toLowerCase().includes(searchTerm.toLowerCase());
-    
+    const matchesSearch = mob.type.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          mob.agent.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterCategory === 'all' || mob.category === filterCategory;
     const matchesState = filterState === 'all' || mob.state === filterState;
-    const matchesGestionnaire = filterGestionnaire === 'all' || mob.gestionnaire === filterGestionnaire;
+    
+    let matchesProcessing = true;
+    if (userRole === 'bureau') {
+        if (filterProcessing === 'done') matchesProcessing = isCategorized(mob);
+        if (filterProcessing === 'todo') matchesProcessing = !isCategorized(mob);
+    }
 
-    return matchesSearch && matchesCategory && matchesState && matchesGestionnaire;
+    return matchesSearch && matchesCategory && matchesState && matchesProcessing;
   });
 
-  const stats = {
-    total: mobiliers.length,
-    neuf: mobiliers.filter(m => m.state === 'neuf').length,
-    correct: mobiliers.filter(m => m.state === 'correct').length,
-    endommagé: mobiliers.filter(m => m.state === 'endommagé').length,
-    dangereux: mobiliers.filter(m => m.state === 'dangereux').length,
-  };
-
-  const exportData = () => {
-    const csv = [
-      ['ID', 'Type', 'Catégorie', 'État', 'Latitude', 'Longitude', 'Gestionnaire', 'Criticité', 'Agent', 'Date', 'Commentaire'].join(';'),
-      ...mobiliers.map(m => [
-        m.id,
-        m.type,
-        CATEGORY_LABELS[m.category],
-        STATE_CONFIG[m.state].label,
-        m.latitude,
-        m.longitude,
-        m.gestionnaire,
-        m.criticite,
-        m.agent,
-        new Date(m.dateRecensement).toLocaleString('fr-FR'),
-        m.commentaire || ''
-      ].join(';'))
-    ].join('\n');
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `recensement_mobilier_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-  };
-
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>Mobiliers recensés ({filteredMobiliers.length})</span>
-          <Button onClick={exportData} variant="outline" size="sm">
-            <Download className="size-4 mr-2" />
-            Exporter CSV
-          </Button>
-        </CardTitle>
+    <Card className="h-full flex flex-col shadow-none border-0 bg-transparent">
+      <CardHeader className="px-0 pt-0 pb-4">
+        <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+          <CardTitle className="text-xl font-bold">Liste Globale</CardTitle>
+          <div className="flex gap-2 w-full md:w-auto">
+             <div className="relative flex-1 md:w-64">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <Input
+                  placeholder="Rechercher..."
+                  className="pl-9 bg-white"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+             </div>
+          </div>
+        </div>
         
-        {/* Statistiques */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-4">
-          <div className="bg-gray-50 p-2 rounded text-center">
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <div className="text-xs text-gray-600">Total</div>
-          </div>
-          <div className="bg-green-50 p-2 rounded text-center">
-            <div className="text-2xl font-bold text-green-700">{stats.neuf}</div>
-            <div className="text-xs text-gray-600">Neuf</div>
-          </div>
-          <div className="bg-blue-50 p-2 rounded text-center">
-            <div className="text-2xl font-bold text-blue-700">{stats.correct}</div>
-            <div className="text-xs text-gray-600">Correct</div>
-          </div>
-          <div className="bg-orange-50 p-2 rounded text-center">
-            <div className="text-2xl font-bold text-orange-700">{stats.endommagé}</div>
-            <div className="text-xs text-gray-600">Endommagé</div>
-          </div>
-          <div className="bg-red-50 p-2 rounded text-center">
-            <div className="text-2xl font-bold text-red-700">{stats.dangereux}</div>
-            <div className="text-xs text-gray-600">Dangereux</div>
-          </div>
+        <div className="flex flex-wrap gap-2 mt-2">
+           <Select value={filterCategory} onValueChange={(v: any) => setFilterCategory(v)}>
+            <SelectTrigger className="w-[180px] bg-white">
+              <Filter className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Catégorie" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes les catégories</SelectItem>
+              {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+                <SelectItem key={key} value={key}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterState} onValueChange={(v: any) => setFilterState(v)}>
+            <SelectTrigger className="w-[160px] bg-white">
+              <SelectValue placeholder="État Physique" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous les états</SelectItem>
+              {Object.entries(STATE_CONFIG).map(([key, config]) => (
+                <SelectItem key={key} value={key}>{config.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {userRole === 'bureau' && (
+            <Select value={filterProcessing} onValueChange={(v: any) => setFilterProcessing(v)}>
+                <SelectTrigger className="w-[180px] border-emerald-200 bg-emerald-50 text-emerald-900">
+                <SelectValue placeholder="Statut Traitement" />
+                </SelectTrigger>
+                <SelectContent>
+                <SelectItem value="all">Tout voir</SelectItem>
+                <SelectItem value="todo">⚠️ À Traiter</SelectItem>
+                <SelectItem value="done">✅ Catégorisé</SelectItem>
+                </SelectContent>
+            </Select>
+          )}
         </div>
       </CardHeader>
-      
-      <CardContent className="flex-1 overflow-hidden flex flex-col">
-        {/* Filtres */}
-        <div className="space-y-2 mb-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
-            <Input
-              placeholder="Rechercher..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <Select value={filterCategory} onValueChange={(val) => setFilterCategory(val as any)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Catégorie" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toutes catégories</SelectItem>
-                {(Object.keys(CATEGORY_LABELS) as MobilierCategory[]).map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {CATEGORY_LABELS[cat]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
 
-            <Select value={filterState} onValueChange={(val) => setFilterState(val as any)}>
-              <SelectTrigger>
-                <SelectValue placeholder="État" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous états</SelectItem>
-                {(Object.keys(STATE_CONFIG) as MobilierState[]).map((state) => (
-                  <SelectItem key={state} value={state}>
-                    {STATE_CONFIG[state].label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={filterGestionnaire} onValueChange={(val) => setFilterGestionnaire(val as any)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Gestionnaire" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous gestionnaires</SelectItem>
-                <SelectItem value="MEL">MEL</SelectItem>
-                <SelectItem value="commune">Commune</SelectItem>
-                <SelectItem value="inconnu">Inconnu</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Liste */}
-        <div className="flex-1 overflow-y-auto space-y-2">
+      <CardContent className="flex-1 px-0 pb-20"> 
+        <div className="space-y-3">
           {filteredMobiliers.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              Aucun mobilier recensé pour le moment
-            </div>
+            <div className="text-center py-10 text-gray-500 bg-white rounded-lg border border-dashed">Aucun résultat trouvé.</div>
           ) : (
             filteredMobiliers.map((mob) => {
-              const stateConfig = STATE_CONFIG[mob.state];
-              return (
-                <div
-                  key={mob.id}
-                  className="p-3 border rounded hover:bg-gray-50 cursor-pointer transition-colors"
-                  onClick={() => {
-                    setSelectedMobilier(mob);
-                    setDialogOpen(true);
-                    onMobilierClick?.(mob);
-                  }}
+               const isCat = isCategorized(mob);
+               
+               let canEdit = false;
+               let editTooltip = "";
+               
+               if (userRole === 'bureau') {
+                   canEdit = true;
+                   editTooltip = "Modifier les données techniques";
+               } else {
+                   const isNearby = nearbyMobiliers.some(m => m.id === mob.id);
+                   canEdit = isNearby;
+                   editTooltip = isNearby ? "Modifier (Vous êtes à proximité)" : "Trop loin pour modifier";
+               }
+
+               return (
+                <div 
+                  key={mob.id} 
+                  className="flex flex-col sm:flex-row gap-4 p-4 rounded-lg border bg-white shadow-sm hover:shadow-md transition-all"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold truncate">{mob.type}</h4>
-                      <p className="text-sm text-gray-600 truncate">
-                        {CATEGORY_LABELS[mob.category]}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {mob.photo && (
-                        <div className="flex items-center gap-1 text-blue-600">
-                          <Image className="size-4" />
+                  <div 
+                    className="w-full sm:w-24 h-24 bg-gray-100 rounded-md overflow-hidden shrink-0 cursor-pointer relative group"
+                    onClick={() => { setSelectedMobilier(mob); setDialogOpen(true); }}
+                  >
+                    {mob.photo ? (
+                      <img src={mob.photo} alt={mob.type} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">Sans photo</div>
+                    )}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h4 className="font-semibold text-gray-900">{mob.type}</h4>
+                        <p className="text-xs text-gray-500">{CATEGORY_LABELS[mob.category]}</p>
+                      </div>
+                      
+                      {userRole === 'bureau' && (
+                        <div className="shrink-0 ml-2">
+                           {isCat ? (
+                             <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200">
+                                <CheckCircle className="size-3 mr-1"/> Complet
+                             </Badge>
+                           ) : (
+                             <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-200 border-orange-200">
+                                <AlertCircle className="size-3 mr-1"/> À faire
+                             </Badge>
+                           )}
                         </div>
                       )}
-                      <div className={`px-2 py-1 rounded text-xs border ${stateConfig.bgColor}`}>
-                        <span className={stateConfig.color}>{stateConfig.label}</span>
-                      </div>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-2 text-xs pt-1">
+                      <span className={`px-2 py-0.5 rounded border ${STATE_CONFIG[mob.state].bgColor} ${STATE_CONFIG[mob.state].color}`}>
+                        {STATE_CONFIG[mob.state].label}
+                      </span>
+                      <span className="text-gray-500 flex items-center gap-1 border px-2 rounded bg-gray-50">
+                        <MapPin className="size-3" />
+                        {mob.latitude.toFixed(5)}, {mob.longitude.toFixed(5)}
+                      </span>
+                    </div>
+
+                    <div className="text-xs text-gray-400 pt-1">
+                       Agent: {mob.agent} • {new Date(mob.dateRecensement).toLocaleDateString()}
                     </div>
                   </div>
-                  
-                  <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                    <Badge variant="outline">{mob.gestionnaire}</Badge>
-                    <Badge variant={mob.criticite === 'urgent sécurité' ? 'destructive' : 'secondary'}>
-                      {mob.criticite}
-                    </Badge>
-                    <span className="text-gray-500 flex items-center gap-1">
-                      <MapPin className="size-3" />
-                      {mob.latitude.toFixed(5)}, {mob.longitude.toFixed(5)}
-                    </span>
-                  </div>
-                  
-                  <div className="mt-2 text-xs text-gray-500">
-                    Par {mob.agent} • {new Date(mob.dateRecensement).toLocaleDateString('fr-FR')} à{' '}
-                    {new Date(mob.dateRecensement).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                  
-                  {mob.commentaire && (
-                    <p className="mt-2 text-sm text-gray-600 italic line-clamp-2">
-                      {mob.commentaire}
-                    </p>
+
+                  {onEdit && (
+                    <div className="flex items-center pl-2 border-l" title={editTooltip}>
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            disabled={!canEdit}
+                            className={canEdit ? "text-indigo-600 hover:bg-indigo-50" : "text-gray-300 cursor-not-allowed"}
+                            onClick={() => { if (canEdit) onEdit(mob); }}
+                        >
+                            {canEdit ? <Edit className="size-5" /> : <Lock className="size-5" />}
+                        </Button>
+                    </div>
                   )}
                 </div>
-              );
+               );
             })
           )}
         </div>

@@ -6,7 +6,7 @@ const sqlite3 = require('sqlite3').verbose();
 const app = express();
 const PORT = 3000;
 
-// AUMENTAR LIMITE: Fotos em base64 são pesadas, aumentamos para 10mb
+// AUMENTAR LIMITE: Fotos em base64 são pesadas
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(cors());
 
@@ -16,7 +16,7 @@ const db = new sqlite3.Database('./mel_recensement.db', (err) => {
     else console.log('Conectado ao banco de dados MEL.');
 });
 
-// Inicialização das Tabelas (Schema atualizado para o novo frontend)
+// Inicialização das Tabelas (Schema atualizado para Bureau/Terrain)
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,7 +25,7 @@ db.serialize(() => {
         senha TEXT
     )`);
 
-    // Tabela com TODOS os campos do novo formulário
+    // Tabela atualizada com distributeur e description_technique
     db.run(`CREATE TABLE IF NOT EXISTS mobilier (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         type TEXT,
@@ -38,6 +38,8 @@ db.serialize(() => {
         commentaire TEXT,
         photo TEXT,
         agent TEXT,
+        distributeur TEXT,
+        description_technique TEXT,
         dateRecensement DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
     
@@ -51,12 +53,10 @@ db.serialize(() => {
 // 1. Login
 app.post('/api/login', (req, res) => {
     const { email, senha } = req.body;
-    // Validação simples de domínio para demo
+    // Validação simples para demo
     if (!email.endsWith('@mel.fr') && email !== 'admin') {
         return res.status(403).json({ erro: "Domínio inválido (use @mel.fr)" });
     }
-    // Para facilitar o teste, aceitamos qualquer senha '1234' se o email for mel.fr
-    // Num caso real, validariamos no banco.
     if (senha === '1234') {
         res.json({ usuario: { nome: 'Agente MEL', email } });
     } else {
@@ -69,28 +69,34 @@ app.get('/api/mobilier', (req, res) => {
     db.all("SELECT * FROM mobilier ORDER BY dateRecensement DESC", [], (err, rows) => {
         if (err) res.status(500).json({ erro: err.message });
         else {
-            // O frontend espera ID como string, o banco devolve numero. Convertendo:
+            // Converte ID numérico para string (necessário para o frontend)
             const formatado = rows.map(r => ({...r, id: r.id.toString()}));
             res.json(formatado);
         }
     });
 });
 
-// 3. Criar ou Atualizar Mobiliário
+// 3. Criar ou Atualizar Mobiliário (Lógica Híbrida Terrain/Bureau)
 app.post('/api/mobilier', (req, res) => {
-    const { id, type, category, state, latitude, longitude, gestionnaire, criticite, commentaire, photo, agent } = req.body;
+    const { 
+        id, type, category, state, latitude, longitude, 
+        gestionnaire, criticite, commentaire, photo, agent,
+        distributeur, description_technique 
+    } = req.body;
 
-    // Se tem ID e não começa com 'mob-' (que é ID temporário do front), é atualização
+    // Se tem ID e não começa com 'mob-' (ID temporário), é ATUALIZAÇÃO (Bureau)
     if (id && !id.toString().startsWith('mob-')) { 
-        const sql = `UPDATE mobilier SET state=?, criticite=?, commentaire=?, photo=?, dateRecensement=CURRENT_TIMESTAMP WHERE id=?`;
-        db.run(sql, [state, criticite, commentaire, photo, id], function(err) {
+        const sql = `UPDATE mobilier SET state=?, criticite=?, commentaire=?, photo=?, distributeur=?, description_technique=?, dateRecensement=CURRENT_TIMESTAMP WHERE id=?`;
+        
+        db.run(sql, [state, criticite, commentaire, photo, distributeur || '', description_technique || '', id], function(err) {
             if (err) return res.status(500).json({ erro: err.message });
             res.json({ status: "ATUALIZADO", id });
         });
     } else {
-        // Novo Registo
-        const sql = `INSERT INTO mobilier (type, category, state, latitude, longitude, gestionnaire, criticite, commentaire, photo, agent) VALUES (?,?,?,?,?,?,?,?,?,?)`;
-        db.run(sql, [type, category, state, latitude, longitude, gestionnaire, criticite, commentaire, photo, agent], function(err) {
+        // Novo Registo (Terrain)
+        const sql = `INSERT INTO mobilier (type, category, state, latitude, longitude, gestionnaire, criticite, commentaire, photo, agent, distributeur, description_technique) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`;
+        
+        db.run(sql, [type, category, state, latitude, longitude, gestionnaire, criticite, commentaire, photo, agent, distributeur || '', description_technique || ''], function(err) {
             if (err) return res.status(500).json({ erro: err.message });
             res.json({ status: "CRIADO", id: this.lastID.toString() });
         });

@@ -3,47 +3,61 @@ import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Building2, Lock, User } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/app/components/ui/tabs'; // Importação essencial
+import { Building2, Lock, User, Map as MapIcon, Briefcase } from 'lucide-react';
 
 interface LoginPageProps {
-  onLogin: (username: string) => void;
+  onLogin: (username: string, role: 'terrain' | 'bureau') => void;
 }
 
 export function LoginPage({ onLogin }: LoginPageProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState<'terrain' | 'bureau'>('terrain');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (username.trim()) {
-      onLogin(username);
+      onLogin(username, role);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <div className="size-16 bg-indigo-600 rounded-full flex items-center justify-center">
+            <div className={`size-16 rounded-full flex items-center justify-center transition-colors ${role === 'terrain' ? 'bg-indigo-600' : 'bg-emerald-600'}`}>
               <Building2 className="size-8 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Recensement Mobilier MEL</CardTitle>
+          <CardTitle className="text-2xl">Recensement MEL</CardTitle>
           <CardDescription>
-            Connectez-vous pour accéder à l'application de recensement du patrimoine urbain
+            {role === 'terrain' ? 'Acesso para coleta em campo' : 'Acesso para gestão administrativa'}
           </CardDescription>
         </CardHeader>
         <CardContent>
+          
+          {/* ABAS PARA ESCOLHER O TIPO DE AGENTE */}
+          <Tabs defaultValue="terrain" onValueChange={(v) => setRole(v as 'terrain' | 'bureau')} className="mb-6 w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="terrain">
+                <MapIcon className="size-4 mr-2" /> Terrain
+              </TabsTrigger>
+              <TabsTrigger value="bureau">
+                <Briefcase className="size-4 mr-2" /> Bureau
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Identifiant agent</Label>
+              <Label htmlFor="username">Identifiant ({role === 'terrain' ? 'Terrain' : 'Bureau'})</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
                 <Input
                   id="username"
-                  type="text"
-                  placeholder="Entrez votre identifiant"
+                  placeholder={role === 'terrain' ? "Ex: agent01" : "Ex: admin_mel"}
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="pl-10"
@@ -58,7 +72,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Entrez votre mot de passe"
+                  placeholder="••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10"
@@ -66,12 +80,12 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 />
               </div>
             </div>
-            <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700">
-              Se connecter
+            <Button 
+              type="submit" 
+              className={`w-full ${role === 'terrain' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
+            >
+              Entrar como {role === 'terrain' ? 'Terrain' : 'Bureau'}
             </Button>
-            <p className="text-sm text-gray-500 text-center mt-4">
-              Version de démonstration - Utilisez n'importe quel identifiant
-            </p>
           </form>
         </CardContent>
       </Card>
