@@ -2,89 +2,111 @@ import { useState } from 'react';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Tabs, TabsList, TabsTrigger } from '@/app/components/ui/tabs'; // Importação essencial
-import { Building2, Lock, User, Map as MapIcon, Briefcase } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Map, Briefcase, LogIn, Lock, User as UserIcon } from 'lucide-react';
+import { User } from '@/app/types/mobilier';
 
 interface LoginPageProps {
-  onLogin: (username: string, role: 'terrain' | 'bureau') => void;
+  onLogin: (user: User) => void;
 }
 
 export function LoginPage({ onLogin }: LoginPageProps) {
+  const [selectedRole, setSelectedRole] = useState<'agent-terrain' | 'agent-bureau'>('agent-terrain');
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'terrain' | 'bureau'>('terrain');
+  const [password, setPassword] = useState(''); // Estado para a senha
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (username.trim()) {
-      onLogin(username, role);
-    }
+    // Validação simples: só entra se tiver usuário E senha
+    if (!username.trim() || !password.trim()) return;
+
+    const user: User = {
+      username,
+      role: selectedRole,
+      loginDate: new Date().toISOString()
+    };
+    
+    onLogin(user);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <Card className="w-full max-w-md shadow-2xl">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-4">
-            <div className={`size-16 rounded-full flex items-center justify-center transition-colors ${role === 'terrain' ? 'bg-indigo-600' : 'bg-emerald-600'}`}>
-              <Building2 className="size-8 text-white" />
-            </div>
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
+      <Card className="w-full max-w-md shadow-xl bg-white">
+        <CardHeader className="text-center space-y-2">
+          <div className="mx-auto size-12 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+             <Map className="text-white size-7" />
           </div>
-          <CardTitle className="text-2xl">Recensement MEL</CardTitle>
-          <CardDescription>
-            {role === 'terrain' ? 'Acesso para coleta em campo' : 'Acesso para gestão administrativa'}
-          </CardDescription>
+          <CardTitle className="text-2xl font-bold text-gray-800">Recensement MEL</CardTitle>
+          <p className="text-sm text-gray-500">Acesso para coleta e gestão</p>
         </CardHeader>
         <CardContent>
-          
-          {/* ABAS PARA ESCOLHER O TIPO DE AGENTE */}
-          <Tabs defaultValue="terrain" onValueChange={(v) => setRole(v as 'terrain' | 'bureau')} className="mb-6 w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="terrain">
-                <MapIcon className="size-4 mr-2" /> Terrain
-              </TabsTrigger>
-              <TabsTrigger value="bureau">
-                <Briefcase className="size-4 mr-2" /> Bureau
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <form onSubmit={handleLogin} className="space-y-6">
+            
+            {/* SELEÇÃO DE PERFIL */}
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => setSelectedRole('agent-terrain')}
+                className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all ${
+                  selectedRole === 'agent-terrain'
+                    ? 'border-indigo-600 bg-indigo-50 text-indigo-700 font-bold shadow-sm'
+                    : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <Map className="size-6 mb-2" />
+                <span>Terrain</span>
+              </button>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="username">Identifiant ({role === 'terrain' ? 'Terrain' : 'Bureau'})</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
-                <Input
-                  id="username"
-                  placeholder={role === 'terrain' ? "Ex: agent01" : "Ex: admin_mel"}
+              <button
+                type="button"
+                onClick={() => setSelectedRole('agent-bureau')}
+                className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all ${
+                  selectedRole === 'agent-bureau'
+                    ? 'border-indigo-600 bg-indigo-50 text-indigo-700 font-bold shadow-sm'
+                    : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <Briefcase className="size-6 mb-2" />
+                <span>Bureau</span>
+              </button>
+            </div>
+
+            {/* INPUTS DE LOGIN */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username" className="flex items-center gap-2">
+                    <UserIcon className="size-4" /> 
+                    Identifiant ({selectedRole === 'agent-terrain' ? 'Terrain' : 'Bureau'})
+                </Label>
+                <Input 
+                  id="username" 
+                  placeholder="Ex: agent01" 
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="pl-10"
-                  required
+                  className="h-11"
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
-                <Input
-                  id="password"
+
+              {/* CAMPO DE SENHA RESTAURADO */}
+              <div className="space-y-2">
+                <Label htmlFor="password" className="flex items-center gap-2">
+                    <Lock className="size-4" /> 
+                    Mot de passe
+                </Label>
+                <Input 
+                  id="password" 
                   type="password"
-                  placeholder="••••••"
+                  placeholder="••••••" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
-                  required
+                  className="h-11"
                 />
               </div>
             </div>
-            <Button 
-              type="submit" 
-              className={`w-full ${role === 'terrain' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
-            >
-              Entrar como {role === 'terrain' ? 'Terrain' : 'Bureau'}
+
+            <Button type="submit" className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-lg">
+              <LogIn className="mr-2 size-5" /> 
+              Entrer comme {selectedRole === 'agent-terrain' ? 'Terrain' : 'Bureau'}
             </Button>
           </form>
         </CardContent>
