@@ -77,6 +77,15 @@ export default function App() {
     setIsBureauEditOpen(false); setTerrainSheetOpen(false);
   };
 
+  // --- NOVA FUNÇÃO DE EXCLUSÃO ---
+  const handleDeleteMobilier = (id: string) => {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer définitivement cet élément ?")) {
+      setMobiliers(prev => prev.filter(m => m.id !== id));
+      toast.success("Élément supprimé avec succès !");
+      setIsBureauEditOpen(false); // Fecha a janela
+    }
+  };
+
   const handleMobilierClick = (mob: Mobilier) => {
     if (currentUser?.role === 'agent-bureau') { setSelectedMobilierForEdit(mob); setIsBureauEditOpen(true); } 
     else if (currentUser?.role === 'agent-terrain') {
@@ -96,9 +105,15 @@ export default function App() {
     <div className="flex flex-col h-screen w-screen bg-gray-50 overflow-hidden">
       <Toaster />
       
-      {/* Sheets */}
+      {/* Sheet Bureau com a nova prop onDelete */}
       {currentUser.role === 'agent-bureau' && (
-        <BureauEditSheet open={isBureauEditOpen} onOpenChange={setIsBureauEditOpen} mobilier={selectedMobilierForEdit} onSave={handleUpdateExisting} />
+        <BureauEditSheet 
+            open={isBureauEditOpen} 
+            onOpenChange={setIsBureauEditOpen} 
+            mobilier={selectedMobilierForEdit} 
+            onSave={handleUpdateExisting} 
+            onDelete={handleDeleteMobilier} // Passando a função aqui
+        />
       )}
 
       <Sheet open={terrainSheetOpen} onOpenChange={setTerrainSheetOpen}>
@@ -108,7 +123,7 @@ export default function App() {
              <SheetDescription>{nearbyMobiliers.length > 0 ? "Modification" : "Nouveau"}</SheetDescription>
           </SheetHeader>
           <div className="flex-1 overflow-y-auto">
-             <RecensementForm onSubmit={handleSubmitRecensement} agent={currentUser.username} nearbyMobiliers={nearbyMobiliers} onUpdateExisting={handleUpdateExisting} />
+             <RecensementForm onSubmit={handleSubmitRecensement} agent={currentUser.username} nearbyMobiliers={nearbyMobiliers} />
           </div>
         </SheetContent>
       </Sheet>
@@ -126,7 +141,6 @@ export default function App() {
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <Tabs defaultValue="carte" className="flex-1 flex flex-col h-full w-full">
           
-          {/* MENU DE ABAS */}
           <div className="flex-none bg-white border-b px-4 py-2 z-40">
             <TabsList className="grid w-full max-w-xl grid-cols-3 bg-gray-100 p-1 rounded-lg">
               <TabsTrigger 
@@ -150,7 +164,6 @@ export default function App() {
             </TabsList>
           </div>
 
-          {/* ABA 1: MAPA */}
           <TabsContent value="carte" className="flex-1 relative w-full h-full p-0 m-0 data-[state=inactive]:hidden">
             <div className="absolute inset-0 w-full h-full">
                 <MapRecensement
@@ -161,8 +174,6 @@ export default function App() {
                   userRole={isTerrain ? 'terrain' : 'bureau'}
                 />
             </div>
-            
-            {/* BOTÃO NOUVEAU (Reposicionado para Topo-Direita) */}
             {isTerrain && (
                 <div className="absolute top-4 right-4 z-[500]">
                     <Button 
@@ -175,7 +186,6 @@ export default function App() {
             )}
           </TabsContent>
 
-          {/* ABA 2: ANALYTICS */}
           <TabsContent value="analytics" className="flex-1 flex flex-col min-h-0 p-0 m-0 data-[state=inactive]:hidden bg-gray-50">
              <div className="flex-none bg-white border-b p-4 max-h-[40%] overflow-y-auto">
                 <DashboardStats mobiliers={mobiliers} />
@@ -186,7 +196,6 @@ export default function App() {
              </div>
           </TabsContent>
 
-          {/* ABA 3: PERFIL */}
           <TabsContent value="profil" className="flex-1 p-0 m-0 overflow-hidden bg-gray-50 data-[state=inactive]:hidden">
              <ProfilePage user={currentUser} mobiliers={mobiliers} />
           </TabsContent>

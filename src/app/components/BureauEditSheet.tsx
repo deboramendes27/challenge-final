@@ -6,16 +6,17 @@ import { Input } from '@/app/components/ui/input';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Mobilier, MobilierState, CATEGORY_LABELS, STATE_CONFIG } from '@/app/types/mobilier';
-import { Save, ShieldCheck } from 'lucide-react';
+import { Save, ShieldCheck, Trash2 } from 'lucide-react'; // Trash2 importado
 
 interface BureauEditSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mobilier: Mobilier | null;
   onSave: (mobilier: Mobilier) => void;
+  onDelete?: (id: string) => void; // Nova propriedade opcional
 }
 
-export function BureauEditSheet({ open, onOpenChange, mobilier, onSave }: BureauEditSheetProps) {
+export function BureauEditSheet({ open, onOpenChange, mobilier, onSave, onDelete }: BureauEditSheetProps) {
   const [category, setCategory] = useState('');
   const [type, setType] = useState('');
   const [state, setState] = useState<MobilierState>('correct');
@@ -23,10 +24,8 @@ export function BureauEditSheet({ open, onOpenChange, mobilier, onSave }: Bureau
   const [criticite, setCriticite] = useState('');
   const [comment, setComment] = useState('');
   
-  // CAMPOS DE VALIDAÇÃO (Exclusivos Bureau)
   const [distributeur, setDistributeur] = useState('');
-  const [descTechnique, setDescTechnique] = useState(''); // O campo extra obrigatório
-  
+  const [descTechnique, setDescTechnique] = useState('');
   const [reference, setReference] = useState('');
   const [dateInstall, setDateInstall] = useState('');
 
@@ -41,7 +40,7 @@ export function BureauEditSheet({ open, onOpenChange, mobilier, onSave }: Bureau
       
       const m = mobilier as any;
       setDistributeur(m.distributeur || '');
-      setDescTechnique(m.description_technique || ''); // Carrega descrição técnica
+      setDescTechnique(m.description_technique || '');
       setReference(m.reference || '');
       setDateInstall(m.dateInstallation || '');
     }
@@ -57,7 +56,6 @@ export function BureauEditSheet({ open, onOpenChange, mobilier, onSave }: Bureau
       gestionnaire: gestionnaire as any,
       criticite: criticite as any,
       commentaire: comment,
-      // Salva os campos que definem a validação
       distributeur,
       description_technique: descTechnique,
       reference,
@@ -76,7 +74,9 @@ export function BureauEditSheet({ open, onOpenChange, mobilier, onSave }: Bureau
           <SheetTitle className="flex items-center gap-2 text-indigo-700">
              <ShieldCheck className="size-5"/> Validation Bureau
           </SheetTitle>
-          <SheetDescription>Édition: <span className="font-bold">{mobilier.type}</span></SheetDescription>
+          <SheetDescription>
+            Édition: <span className="font-bold text-gray-800">{mobilier.type}</span>
+          </SheetDescription>
         </SheetHeader>
         
         <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-white">
@@ -154,11 +154,28 @@ export function BureauEditSheet({ open, onOpenChange, mobilier, onSave }: Bureau
           </div>
         </div>
 
-        <div className="p-4 border-t bg-gray-50 shrink-0 flex justify-end gap-3">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
-            <Button onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm">
-                <Save className="size-4 mr-2" /> Valider
-            </Button>
+        {/* FOOTER com Botão de Excluir */}
+        <div className="p-4 border-t bg-gray-50 shrink-0 flex justify-between items-center">
+            {/* Botão de Excluir (Lado Esquerdo) */}
+            <div>
+               {onDelete && (
+                 <Button 
+                   variant="ghost" 
+                   className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                   onClick={() => onDelete(mobilier.id)}
+                 >
+                    <Trash2 className="size-4 mr-2" /> Supprimer
+                 </Button>
+               )}
+            </div>
+
+            {/* Botões de Ação (Lado Direito) */}
+            <div className="flex gap-3">
+               <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
+               <Button onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm">
+                   <Save className="size-4 mr-2" /> Valider
+               </Button>
+            </div>
         </div>
       </SheetContent>
     </Sheet>
